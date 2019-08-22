@@ -202,7 +202,7 @@ activation_fn! {
             1.0 / (1.0 + (-x).exp())
         },
         der x => {
-            let output = x;
+            let output = 1.0 / (1.0 + (-x).exp());
             return output * (1.0-output)
         }
     },
@@ -633,8 +633,18 @@ impl Genetic {
     /// Create offspring by mutation and mating.
     pub fn evolve(&mut self, learn_params: &LearnParams) {
         let fittest = self.fittest();
-        let parent1: Organism = self.organisms[fittest[0]].clone();
-        let parent2: Organism = self.organisms[fittest[1]].clone();
+        let mut parent1: Organism = self.organisms[fittest[0]].clone();
+        let mut parent2: Organism = self.organisms[fittest[1]].clone();
+        if parent1.fitness == 0.0 && parent2.fitness == 0.0 {
+            parent1 = Organism {
+                fitness: 0.0,
+                nn: NeuralNetwork::new(parent1.nn.layer.clone(),parent1.nn.layers[0][0].activation,parent1.nn.layers[parent1.nn.layers.len()-1][0].activation)
+            };
+            parent2 = Organism {
+                fitness: 0.0,
+                nn: NeuralNetwork::new(parent1.nn.layer.clone(),parent1.nn.layers[0][0].activation,parent1.nn.layers[parent1.nn.layers.len()-1][0].activation)
+            };
+        }
         use rayon::iter::*;
         self.organisms.par_iter_mut().for_each(|x| {
             *x = parent1.mate(parent1.fitness > parent2.fitness, &parent2, learn_params);
