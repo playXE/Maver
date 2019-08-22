@@ -6,7 +6,7 @@ edition = "2018"
 description = "Neural network libary"
 repository = "https://github.com/playXE/Maver"
 readme = "README.md"
-keywords = ["nn","perceptron","neural-network","network","nerual","feedforward","backprop","genetic"]
+keywords = ["perceptron","neural-network","network","nerual","genetic"]
 license = "MIT"
 [dependencies]
 rand = "0.7"
