@@ -297,8 +297,8 @@ impl NeuralNetwork {
         }
     }
     /// Get neural network output
-    pub fn forward_prop(&mut self, row: &[f64]) -> Vec<f64> {
-        self.layers.iter_mut().fold(row.to_vec(), |inputs, layer| {
+    pub fn forward_prop(&self, row: &[f64]) -> Vec<f64> {
+        self.layers.iter().fold(row.to_vec(), |inputs, layer| {
             layer
                 .iter()
                 .map(|perceptron| perceptron.activate(&inputs))
