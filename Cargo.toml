@@ -1,0 +1,16 @@
+[package]
+name = "maver"
+version = "0.1.0"
+authors = ["playXE <adel.prokurov@protonmail.com>"]
+edition = "2018"
+description = "Neural network libary"
+repository = "https://github.com/playXE/Maver"
+readme = "README.md"
+keywords = ["nn","perceptron","neural-network","network","nerual","feedforward","backprop","genetic"]
+license = "MIT"
+[dependencies]
+rand = "0.7"
+rayon = "1.1"
+rand_distr = "0.2"
+serde = { version = "1.0", features = ["derive"] } 
+serde_json = "1.0.40"
