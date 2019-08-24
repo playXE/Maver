@@ -702,9 +702,14 @@ impl Genetic {
     /// Create offspring by mutation and mating.
     pub fn evolve(&mut self, learn_params: &LearnParams) {
         let fittest = self.fittest();
+<<<<<<< HEAD
         let parent1: Organism = self.organisms[fittest[0]].clone();
         let parent2: Organism = self.organisms[fittest[1]].clone();
         let parent3: Organism = self.organisms[fittest[2]].clone();
+=======
+        let mut parent1: Organism = self.organisms[fittest[0]].clone();
+        let mut parent2: Organism = self.organisms[fittest[1]].clone();
+>>>>>>> 7a5da5d7c1a5db9b90a85edbab4728842bb1932d
         /*if parent1.fitness == 0.0 && parent2.fitness == 0.0 {
             parent1 = Organism {
                 fitness: 0.0,
