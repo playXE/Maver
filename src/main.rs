@@ -1,33 +1,53 @@
+
 extern crate maver;
+
 use maver::*;
 
-fn main () {
-    let xor_sets = [
-        (vec![0., 0.], vec![0.0]),
-        (vec![0., 1.], vec![1.0]),
-        (vec![1., 0.], vec![1.0]),
-        (vec![1., 1.], vec![0.0]),
-    ];
-    let mut network = NeuralNetwork::new(vec![2, 2, 1],Activation::Sigmoid,Activation::Sigmoid);
-    for i in 1.. {
-        for &(ref input, ref output) in xor_sets.iter() {
-            network.forward_set(input);
-            network.backpropagate(input, output,None);
-        }
 
-        if i % 1000 == 0 {
-            println!("\nIteration: {:?}", i);
-            println!("eval 0,0: {:?}", network.forward_prop(&vec![0., 0.]));
-            println!("eval 0,1: {:?}", network.forward_prop(&vec![0., 1.]));
-            println!("eval 1,0: {:?}", network.forward_prop(&vec![1., 0.]));
-            println!("eval 1,1: {:?}", network.forward_prop(&vec![1., 1.]));
-        }
-        if i % 1000000 == 0 {
-            break
-        }
+struct XOR;
+
+impl Environment for XOR {
+    fn test(&self,org: &mut Organism) {
+        let mut distance: f64;
+        let nn = &mut org.nn;
+        let out = nn.forward_prop(&[0.0,0.0]);
+        distance = (0.0 - out[0]).powi(2);
+        let out = nn.forward_prop(&[0.0,1.0]);
+        distance += (1.0 - out[0]).powi(2);
+        let out = nn.forward_prop(&[1.0,0.0]);
+        distance += (1.0 - out[0]).powi(2);
+        let out = nn.forward_prop(&[1.0,1.0]);
+        distance += (0.0 - out[0]).powi(2);
+        let fitness = 16.0 / (1.0 + distance);
+        org.fitness = fitness;
     }
-            println!("eval 0,0: {:?}", network.forward_prop(&vec![0., 0.]));
-            println!("eval 0,1: {:?}", network.forward_prop(&vec![0., 1.]));
-            println!("eval 1,0: {:?}", network.forward_prop(&vec![1., 0.]));
-            println!("eval 1,1: {:?}", network.forward_prop(&vec![1., 1.]));
+}
+
+fn main() {
+    let mut n = Genetic::new(400,&[2,2,1],Activation::BentIdentity,Activation::Arctan);
+    let p = LearnParams {
+        bias_zero_pr: 0.0,
+        bias_one_pr: 0.0,
+        ..LearnParams::default()
+    };
+    let mut champion = None;
+    let mut i = 0;
+    while champion.is_none() {
+        n.evaluate(&mut XOR);
+        if n.get_champion().fitness > 15.7 {
+            champion = Some(n.get_champion().clone());
+        }
+        println!("Iteration: {:?},best fitness: {}",i,n.get_champion().fitness);
+        n.evolve(&p);
+        
+
+        i += 1;
+    }
+
+    
+    println!("{:#?}",champion.as_ref().unwrap());
+    println!("0^0 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[0.0,0.0]));
+    println!("1^0 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[1.0,0.0]));
+    println!("1^1 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[1.0,1.0]));
+    println!("0^1 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[0.0,1.0]));
 }

@@ -24,7 +24,7 @@ impl Environment for XOR {
 }
 
 fn main() {
-    let mut n = Genetic::new(150,&[2,5,1],Activation::Tanh,Activation::Tanh);
+    let mut n = Genetic::new(400,&[2,2,1],Activation::BentIdentity,Activation::Arctan);
     let p = LearnParams {
         bias_zero_pr: 0.0,
         bias_one_pr: 0.0,
@@ -34,7 +34,7 @@ fn main() {
     let mut i = 0;
     while champion.is_none() {
         n.evaluate(&mut XOR);
-        if n.get_champion().fitness > 15.999 {
+        if n.get_champion().fitness > 15.7 {
             champion = Some(n.get_champion().clone());
         }
         println!("Iteration: {:?},best fitness: {}",i,n.get_champion().fitness);
@@ -46,8 +46,8 @@ fn main() {
 
     
     println!("{:#?}",champion.as_ref().unwrap());
-    println!("{:?}",champion.as_mut().unwrap().nn.forward_prop(&[0.0,0.0]));
-    println!("{:?}",champion.as_mut().unwrap().nn.forward_prop(&[1.0,0.0]));
-    println!("{:?}",champion.as_mut().unwrap().nn.forward_prop(&[1.0,1.0]));
-    println!("{:?}",champion.as_mut().unwrap().nn.forward_prop(&[0.0,1.0]));
+    println!("0^0 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[0.0,0.0]));
+    println!("1^0 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[1.0,0.0]));
+    println!("1^1 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[1.0,1.0]));
+    println!("0^1 = {:?}",champion.as_mut().unwrap().nn.forward_prop(&[0.0,1.0]));
 }

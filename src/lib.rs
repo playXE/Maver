@@ -177,8 +177,56 @@ activation_fn! {
     Tanh {
         output x => {x.tanh().abs()},
         der x => {
-            let output = x;
+            let output = x.tanh().abs();
             return 1.0 - output * output;
+        }
+    },
+    Arctan {
+        output x => {
+            x.atan()
+        },
+        der x => {
+            (1.0 / (x.powi(2) + 1.0))
+        }
+    },
+    SoftSign {
+        output x => {
+            let x = x / (1.0 + x.abs());
+            x
+        },
+        der x => {
+            let x = x / (1.0 + x.abs()).powi(2);
+            x
+        }
+    },
+    SoftPlus {
+        output x => {
+            let x = 1.0 + std::f64::consts::E.powf(x);
+            x.ln()
+        },
+        der x => {
+            let x = 1.0 / (1.0 + std::f64::consts::E.powf(x));
+            x
+        }
+    },
+    BentIdentity {
+        output x => {
+            let x = ((x.powi(2) + 1.0).sqrt() - 1.0 / 2.0) + x;
+            x
+        },  
+        der x => {
+            let x = (x / (2.0*(x.powi(2) + 1.0).sqrt())) + 1.0;
+            x
+        }
+    },
+    Gaussian {
+        output x => {
+            let x = std::f64::consts::E.powf(-x.powi(2));
+            x
+        },
+        der x => {
+            let x = -2.0 * x * std::f64::consts::E.powf(-x.powi(2));
+            x
         }
     },
     Relu {
@@ -232,7 +280,7 @@ pub struct Perceptron {
 impl Perceptron {
     fn create(inputs: usize, activation: Activation) -> Perceptron {
         Perceptron {
-            weights: (0..inputs).map(|_| random::<f64>()).collect(),
+            weights: (0..inputs).map(|_|{let mut rng = rand::thread_rng(); rng.gen_range(-1.0f64,1.0f64)}).collect(),
             output: 0.0,
             delta: 0.0,
             bias: random::<f64>(),
@@ -241,13 +289,21 @@ impl Perceptron {
     }
     /// Activate perceptron and get output
     pub fn activate(&self, inputs: &Vec<f64>) -> f64 {
-        self.activation.output(
+        self.activation.output(if self.weights.len() < 30 {
             self.weights
                 .iter()
                 .zip(inputs.iter())
                 .map(|(weight, input)| weight * input)
                 .sum::<f64>()
-                + self.bias,
+                + self.bias
+            } else {
+                use rayon::iter::*;
+                self.weights
+                    .par_iter()
+                    .zip(inputs.par_iter())
+                    .map(|(weight,input)| weight * input)
+                    .sum::<f64>() + self.bias
+            }
         )
     }
 
@@ -284,7 +340,7 @@ impl NeuralNetwork {
                                 output_act
                             } else {
                                 if activation == Activation::Linear {
-                                    panic!("Can't use linear activation in input/hidden layers");
+                                    //panic!("Can't use linear activation in input/hidden layers");
                                 }
                                 activation
                             };
@@ -298,18 +354,20 @@ impl NeuralNetwork {
     }
     /// Get neural network output
     pub fn forward_prop(&self, row: &[f64]) -> Vec<f64> {
+        use rayon::iter::*;
         self.layers.iter().fold(row.to_vec(), |inputs, layer| {
             layer
-                .iter()
+                .par_iter()
                 .map(|perceptron| perceptron.activate(&inputs))
                 .collect()
         })
     }
     /// Set & get neural network output (used for backpropagation)
     pub fn forward_set(&mut self, row: &Vec<f64>) -> Vec<f64> {
+        use rayon::iter::*;
         self.layers.iter_mut().fold(row.clone(), |inputs, layer| {
             layer
-                .iter_mut()
+                .par_iter_mut()
                 .map(|perceptron| {
                     perceptron.output = perceptron.activate(&inputs);
                     perceptron.output
@@ -437,10 +495,10 @@ impl Organism {
         use rand_distr::Normal;
         if random::<f64>() < learn_params.mutate_add_neuron_pr {
             if self.nn.layers.len() == 2 {
-                let icount = self.nn.layers[0][0].weights.len();
+                /*let icount = self.nn.layers[0][0].weights.len();
                 let act = self.nn.layers[0][0].activation;
                 let p = Perceptron::create(icount, act);
-                self.nn.layers.insert(1, vec![p]);
+                self.nn.layers.insert(1, vec![p]);*/
             } else {
                 let sacred_layers = self.nn.layer[0] + self.nn.layer[self.nn.layer.len() - 1];
                 if !(self.nn.layers.len() <= sacred_layers) {
@@ -582,6 +640,9 @@ impl Genetic {
         act_in: Activation,
         act_out: Activation,
     ) -> Genetic {
+        if population_size < 3 {
+            panic!("Population size should be at least 3");
+        }
         Genetic {
             organisms: (0..population_size)
                 .map(|_| Organism {
@@ -613,8 +674,8 @@ impl Genetic {
         &self.organisms[self.fittest()[0]]
     }
     /// Returns indexes of fittest organisms
-    pub fn fittest(&self) -> [usize; 2] {
-        let mut fittest = [0; 2];
+    pub fn fittest(&self) -> [usize; 3] {
+        let mut fittest = [0; 3];
         for i in 0..self.organisms.len() {
             if self.organisms[fittest[0]].fitness < self.organisms[i].fitness {
                 fittest[0] = i;
@@ -628,14 +689,23 @@ impl Genetic {
                 fittest[1] = i;
             }
         }
+        for i in 0..self.organisms.len() {
+            if i == fittest[0] || i == fittest[1] {
+                continue;
+            }
+            if self.organisms[fittest[2]].fitness < self.organisms[i].fitness {
+                fittest[2] = i;
+            }
+        }
         return fittest;
     }
     /// Create offspring by mutation and mating.
     pub fn evolve(&mut self, learn_params: &LearnParams) {
         let fittest = self.fittest();
-        let mut parent1: Organism = self.organisms[fittest[0]].clone();
-        let mut parent2: Organism = self.organisms[fittest[1]].clone();
-        if parent1.fitness == 0.0 && parent2.fitness == 0.0 {
+        let parent1: Organism = self.organisms[fittest[0]].clone();
+        let parent2: Organism = self.organisms[fittest[1]].clone();
+        let parent3: Organism = self.organisms[fittest[2]].clone();
+        /*if parent1.fitness == 0.0 && parent2.fitness == 0.0 {
             parent1 = Organism {
                 fitness: 0.0,
                 nn: NeuralNetwork::new(parent1.nn.layer.clone(),parent1.nn.layers[0][0].activation,parent1.nn.layers[parent1.nn.layers.len()-1][0].activation)
@@ -644,10 +714,15 @@ impl Genetic {
                 fitness: 0.0,
                 nn: NeuralNetwork::new(parent1.nn.layer.clone(),parent1.nn.layers[0][0].activation,parent1.nn.layers[parent1.nn.layers.len()-1][0].activation)
             };
-        }
+        }*/
         use rayon::iter::*;
         self.organisms.par_iter_mut().for_each(|x| {
-            *x = parent1.mate(parent1.fitness > parent2.fitness, &parent2, learn_params);
+            let (m1,m2) = if random::<f64>() < 0.5 {
+                (&parent1,&parent2)
+            } else {
+                (&parent1,&parent3)
+            };
+            *x = m1.mate(m1.fitness > m2.fitness, m2, learn_params);
         });
     }
 }
