@@ -6,11 +6,14 @@ edition = "2018"
 description = "Neural network libary"
 repository = "https://github.com/playXE/Maver"
 readme = "README.md"
-keywords = ["perceptron","neural-network","network","nerual","genetic"]
+keywords = ["perceptron", "neural-network", "network", "nerual", "genetic"]
 license = "MIT"
 [dependencies]
 rand = "0.7"
 rayon = "1.1"
 rand_distr = "0.2"
-serde = { version = "1.0", features = ["derive"] } 
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.40"
+lazy_static = "*"
+alkomp = { git = "https://github.com/RustyBamboo/Alkomp", branch = "main", features = ["shaderc"] }
+futures = "*"

@@ -61,18 +61,18 @@
 //!    );
 //!}
 //! ```
-//! 
+//!
 //! Using backpropagation algorithm:
 //! ```rust
 //! let mut nn = NeuralNetwork!(vec![2,2,1],Activation::Tanh,Activation::Tanh);
-//! 
+//!
 //!let xor_sets = vec![
 //!    (vec![0., 0.], vec![0.0]),
 //!    (vec![0., 1.], vec![1.0]),
 //!    (vec![1., 0.], vec![1.0]),
 //!    (vec![1., 1.], vec![0.0]),
 //!];
-//! 
+//!
 //! nn.train(1000,false,xor_sets,Some(0.01));
 //! println!("{:?}",nn.forward_prop(&[0.0,0.0]));
 //! println!("{:?}",nn.forward_prop(&[0.0,1.0]));
@@ -83,7 +83,7 @@ pub trait RegularizationFn {
     fn der(&self, _: f64) -> f64;
 }
 
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone)]
 pub struct L1;
@@ -138,8 +138,6 @@ impl Regularization {
         }
     }
 }
-
-
 
 macro_rules! activation_fn {
     (
@@ -213,7 +211,7 @@ activation_fn! {
         output x => {
             let x = ((x.powi(2) + 1.0).sqrt() - 1.0 / 2.0) + x;
             x
-        },  
+        },
         der x => {
             let x = (x / (2.0*(x.powi(2) + 1.0).sqrt())) + 1.0;
             x
@@ -269,7 +267,7 @@ pub fn err_der(x: f64, y: f64) -> f64 {
 
 use rand::random;
 
-#[derive(Clone, Debug,Serialize,Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Perceptron {
     pub delta: f64,
     pub output: f64,
@@ -280,31 +278,31 @@ pub struct Perceptron {
 impl Perceptron {
     fn create(inputs: usize, activation: Activation) -> Perceptron {
         Perceptron {
-            weights: (0..inputs).map(|_|{let mut rng = rand::thread_rng(); rng.gen_range(-1.0f64,1.0f64)}).collect(),
+            weights: (0..inputs)
+                .map(|_| {
+                    let mut rng = rand::thread_rng();
+                    rng.gen_range(-1.0f64, 1.0f64)
+                })
+                .collect(),
             output: 0.0,
             delta: 0.0,
             bias: random::<f64>(),
             activation,
         }
     }
+
     /// Activate perceptron and get output
+
     pub fn activate(&self, inputs: &Vec<f64>) -> f64 {
-        self.activation.output(if self.weights.len() < 30 {
-            self.weights
-                .iter()
-                .zip(inputs.iter())
-                .map(|(weight, input)| weight * input)
-                .sum::<f64>()
-                + self.bias
-            } else {
-                use rayon::iter::*;
-                self.weights
-                    .par_iter()
-                    .zip(inputs.par_iter())
-                    .map(|(weight,input)| weight * input)
-                    .sum::<f64>() + self.bias
-            }
-        )
+        let res = self
+            .weights
+            .iter()
+            .zip(inputs.iter())
+            .map(|(weight, input)| weight * input)
+            .sum::<f64>()
+            + self.bias;
+
+        self.activation.output(res)
     }
 
     pub fn derivative(&self) -> f64 {
@@ -315,7 +313,7 @@ impl Perceptron {
 
 type Layer = Vec<Perceptron>;
 
-#[derive(Clone, Debug,Serialize,Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NeuralNetwork {
     pub layers: Vec<Layer>,
     layer: Vec<usize>,
@@ -362,6 +360,8 @@ impl NeuralNetwork {
                 .collect()
         })
     }
+
+    pub fn forward_prop_gpu(&self, row: &[f64]) -> Vec<f64> {}
     /// Set & get neural network output (used for backpropagation)
     pub fn forward_set(&mut self, row: &Vec<f64>) -> Vec<f64> {
         use rayon::iter::*;
@@ -446,10 +446,10 @@ impl NeuralNetwork {
         nn
     }
 
-    pub fn save_to_file(&self,file_path: &str) -> std::io::Result<()> {
+    pub fn save_to_file(&self, file_path: &str) -> std::io::Result<()> {
         let json = serde_json::to_string(self).unwrap();
-        std::fs::write(file_path,&json)
-    } 
+        std::fs::write(file_path, &json)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -702,14 +702,11 @@ impl Genetic {
     /// Create offspring by mutation and mating.
     pub fn evolve(&mut self, learn_params: &LearnParams) {
         let fittest = self.fittest();
-<<<<<<< HEAD
+
         let parent1: Organism = self.organisms[fittest[0]].clone();
         let parent2: Organism = self.organisms[fittest[1]].clone();
         let parent3: Organism = self.organisms[fittest[2]].clone();
-=======
-        let mut parent1: Organism = self.organisms[fittest[0]].clone();
-        let mut parent2: Organism = self.organisms[fittest[1]].clone();
->>>>>>> 7a5da5d7c1a5db9b90a85edbab4728842bb1932d
+
         /*if parent1.fitness == 0.0 && parent2.fitness == 0.0 {
             parent1 = Organism {
                 fitness: 0.0,
@@ -722,10 +719,10 @@ impl Genetic {
         }*/
         use rayon::iter::*;
         self.organisms.par_iter_mut().for_each(|x| {
-            let (m1,m2) = if random::<f64>() < 0.5 {
-                (&parent1,&parent2)
+            let (m1, m2) = if random::<f64>() < 0.5 {
+                (&parent1, &parent2)
             } else {
-                (&parent1,&parent3)
+                (&parent1, &parent3)
             };
             *x = m1.mate(m1.fitness > m2.fitness, m2, learn_params);
         });
